@@ -16,6 +16,39 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "resolveJsonModule": true,
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "@app/config": [
+        "libs/config/src"
+      ],
+      "@app/config/*": [
+        "libs/config/src/*"
+      ],
+      "@app/gram": [
+        "libs/gram/src"
+      ],
+      "@app/gram/*": [
+        "libs/gram/src/*"
+      ],
+      "@app/prisma": [
+        "libs/prisma/src"
+      ],
+      "@app/prisma/*": [
+        "libs/prisma/src/*"
+      ],
+      "@app/shared": [
+        "libs/shared/src"
+      ],
+      "@app/shared/*": [
+        "libs/shared/src/*"
+      ],
+      "@app/twitter": [
+        "libs/twitter/src"
+      ],
+      "@app/twitter/*": [
+        "libs/twitter/src/*"
+      ]
+    }
   }
 }

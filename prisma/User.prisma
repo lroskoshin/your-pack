@@ -1,0 +1,18 @@
+model User {
+  id         String       @id @default(uuid())
+  telegramId BigInt       @unique
+  language   UserLanguage @default(EN)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  packs            Pack[]
+  TelegramProvider TelegramProvider[]
+  TwitterProvider  TwitterProvider[]
+
+  @@index([telegramId])
+}
+
+enum UserLanguage {
+  EN
+  RU
+}

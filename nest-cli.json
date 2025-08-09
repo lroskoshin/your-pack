@@ -1,8 +1,84 @@
 {
   "$schema": "https://json.schemastore.org/nest-cli",
   "collection": "@nestjs/schematics",
-  "sourceRoot": "src",
+  "sourceRoot": "apps/your-pack/src",
   "compilerOptions": {
-    "deleteOutDir": true
+    "deleteOutDir": true,
+    "webpack": true,
+    "tsConfigPath": "apps/your-pack/tsconfig.app.json"
+  },
+  "monorepo": true,
+  "root": "apps/your-pack",
+  "projects": {
+    "bot": {
+      "type": "application",
+      "root": "apps/bot",
+      "entryFile": "main",
+      "sourceRoot": "apps/bot/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/bot/tsconfig.app.json",
+        "assets": [
+          {
+            "include": "i18n/*.json",
+            "watchAssets": true,
+            "outDir": "dist/apps/bot/i18n"
+          }
+        ]
+      }
+    },
+    "config": {
+      "type": "library",
+      "root": "libs/config",
+      "entryFile": "index",
+      "sourceRoot": "libs/config/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/config/tsconfig.lib.json"
+      }
+    },
+    "gram": {
+      "type": "library",
+      "root": "libs/gram",
+      "entryFile": "index",
+      "sourceRoot": "libs/gram/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/gram/tsconfig.lib.json"
+      }
+    },
+    "prisma": {
+      "type": "library",
+      "root": "libs/prisma",
+      "entryFile": "index",
+      "sourceRoot": "libs/prisma/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/prisma/tsconfig.lib.json"
+      }
+    },
+    "shared": {
+      "type": "library",
+      "root": "libs/shared",
+      "entryFile": "index",
+      "sourceRoot": "libs/shared/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/shared/tsconfig.lib.json"
+      }
+    },
+    "twitter": {
+      "type": "library",
+      "root": "libs/twitter",
+      "entryFile": "index",
+      "sourceRoot": "libs/twitter/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/twitter/tsconfig.lib.json"
+      }
+    },
+    "your-pack": {
+      "type": "application",
+      "root": "apps/your-pack",
+      "entryFile": "main",
+      "sourceRoot": "apps/your-pack/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/your-pack/tsconfig.app.json"
+      }
+    }
   }
 }

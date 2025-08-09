@@ -1,0 +1,12 @@
+model TwitterProvider {
+  id        String @id @default(uuid())
+  userId    String
+  profileId String
+  packId    String @unique
+
+  user User @relation(fields: [userId], references: [id])
+  pack Pack @relation(fields: [packId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

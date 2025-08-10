@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@app/prisma';
-import { UserContext } from '../interfaces/context.interface';
-import { TwitterProvider } from '@prisma/client';
-import z from 'zod';
+import { Pack, TelegramProvider, TwitterProvider } from '@prisma/client';
 import { GramService } from '@app/gram';
 import { TwitterService } from '@app/twitter';
+import { ConfigService } from '@nestjs/config';
+import { Env } from '@app/config';
 
 @Injectable()
 export class PackService {
@@ -12,95 +12,96 @@ export class PackService {
     private readonly prisma: PrismaService,
     private readonly gramService: GramService,
     private readonly twitterService: TwitterService,
+    private readonly configService: ConfigService<Env>,
   ) {}
-  public async getPack(ctx: UserContext) {
-    if (
-      !('packId' in ctx.scene.state) ||
-      typeof ctx.scene.state.packId !== 'string'
-    ) {
-      return null;
-    }
-    if (!ctx.user) {
-      return null;
-    }
+
+  public async getPackSecurely(userId: string, packId: string) {
     const pack = await this.prisma.pack.findFirst({
-      where: { id: ctx.scene.state.packId, userId: ctx.user.id },
+      where: { id: packId, userId },
       include: {
         telegramProvider: true,
         twitterProvider: true,
       },
     });
     if (!pack) {
-      return null;
+      throw new Error('Pack not found');
     }
     return pack;
   }
 
+  public async getPack(packId: string) {
+    return this.prisma.pack.findFirst({
+      where: { id: packId },
+      include: {
+        telegramProvider: true,
+        twitterProvider: true,
+      },
+    });
+  }
+
   public async addTwitter(
-    ctx: UserContext,
+    userId: string,
+    packId: string,
     profileId: string,
   ): Promise<null | TwitterProvider> {
-    const pack = await this.getPack(ctx);
-    if (!pack || !ctx.user) {
-      return null;
-    }
+    const pack = await this.getPackSecurely(userId, packId);
     return this.prisma.twitterProvider.upsert({
-      where: { packId: pack.id, userId: ctx.user.id },
+      where: { packId: pack.id },
       update: { profileId },
-      create: { profileId, packId: pack.id, userId: ctx.user.id },
+      create: { profileId, packId: pack.id, userId },
     });
   }
 
-  public async addTelegram(ctx: UserContext, chatName: string) {
-    const pack = await this.getPack(ctx);
-    if (!pack || !ctx.user) {
-      return null;
-    }
+  public async addTelegram(userId: string, packId: string, chatName: string) {
+    const pack = await this.getPackSecurely(userId, packId);
     return this.prisma.telegramProvider.upsert({
-      where: { packId: pack.id, userId: ctx.user.id },
+      where: { packId: pack.id },
       update: { chatName },
-      create: { chatName, packId: pack.id, userId: ctx.user.id },
+      create: { chatName, packId: pack.id, userId },
     });
   }
 
-  public async deleteTelegram(ctx: UserContext) {
-    const pack = await this.getPack(ctx);
-    if (!pack || !ctx.user) {
-      return null;
-    }
+  public async deleteTelegram(userId: string, packId: string) {
+    const pack = await this.getPackSecurely(userId, packId);
     return this.prisma.telegramProvider.delete({
-      where: { packId: pack.id, userId: ctx.user.id },
+      where: { packId: pack.id },
     });
   }
 
-  public async deleteTwitter(ctx: UserContext) {
-    const pack = await this.getPack(ctx);
-    if (!pack || !ctx.user) {
-      return null;
-    }
+  public async deleteTwitter(userId: string, packId: string) {
+    const pack = await this.getPackSecurely(userId, packId);
     return this.prisma.twitterProvider.delete({
-      where: { packId: pack.id, userId: ctx.user.id },
+      where: { packId: pack.id },
     });
   }
 
-  public async newPack(ctx: UserContext, name: string) {
-    if (!ctx.user?.id) {
-      throw new Error('User not found');
-    }
-    const parseResult = z.string().min(1).safeParse(name);
-    if (parseResult.error) {
+  public async newPack(userId: string, name: string) {
+    if (name.length < 1 || name.length > 25) {
       throw new Error('Invalid pack name');
     }
     return this.prisma.pack.create({
-      data: { name, userId: ctx.user.id },
+      data: { name, userId },
     });
   }
 
-  public async checkPack(ctx: UserContext) {
-    const pack = await this.getPack(ctx);
-    if (!pack || !ctx.user) {
-      return null;
+  public async checkPackSecurely(userId: string, packId: string) {
+    const pack = await this.getPackSecurely(userId, packId);
+    return this.checkPack(pack);
+  }
+  public async getMemberData(packId: string) {
+    const pack = await this.getPack(packId);
+    if (!pack) {
+      throw new Error('Pack not found');
     }
+    return this.checkPack(pack);
+  }
+
+  private async checkPack(
+    pack: Pack & {
+      telegramProvider: TelegramProvider | null;
+      twitterProvider: TwitterProvider | null;
+    },
+  ) {
     const result: CheckPackResult = {
       packName: pack.name,
     };
@@ -117,14 +118,22 @@ export class PackService {
     return result;
   }
 
-  public async deletePack(ctx: UserContext) {
-    const pack = await this.getPack(ctx);
-    if (!pack || !ctx.user) {
-      return null;
-    }
+  public async deletePack(userId: string, packId: string) {
+    const pack = await this.getPackSecurely(userId, packId);
     return this.prisma.pack.delete({
-      where: { id: pack.id, userId: ctx.user.id },
+      where: { id: pack.id, userId },
     });
+  }
+
+  public async getPackPublicUrl(userId: string, packId: string) {
+    const pack = await this.getPackSecurely(userId, packId);
+    const publicUrl = this.configService.get('PUBLIC_URL', { infer: true })!;
+    const base64PackId = Buffer.from(pack.id).toString('base64');
+    return `${publicUrl}/pack/${base64PackId}`;
+  }
+
+  public getPackFromBase64PackId(base64PackId: string) {
+    return Buffer.from(base64PackId, 'base64').toString('utf-8');
   }
 }
 

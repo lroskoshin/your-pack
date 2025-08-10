@@ -1,5 +1,5 @@
 import { Ctx, Message, On, Scene, SceneEnter } from 'nestjs-telegraf';
-import { EDIT_PACK_SCENE, EDIT_PACK_TELEGRAM_SCENE } from '../constants';
+import { EDIT_PACK_TELEGRAM_SCENE } from '../constants';
 import { PackService } from '../pack.service';
 import { UserContext } from '../../interfaces/context.interface';
 
@@ -17,14 +17,22 @@ export class UpsertTelegramScene {
       await ctx.reply(ctx.t('telegram_add_error'));
       return;
     }
-    const telegramProvider = await this.packService.addTelegram(ctx, text);
+    const packId = ctx.scene.state?.packId;
+    const userId = ctx.user?.id;
+    if (!packId || !userId) {
+      await ctx.reply(ctx.t('telegram_add_error'));
+      return;
+    }
+    const telegramProvider = await this.packService.addTelegram(
+      userId,
+      packId,
+      text,
+    );
     if (!telegramProvider) {
       await ctx.reply(ctx.t('telegram_add_error'));
       return;
     }
     await ctx.reply(ctx.t('telegram_add_success'));
-    await ctx.scene.enter(EDIT_PACK_SCENE, {
-      packId: ctx.scene.state?.packId,
-    });
+    await ctx.scene.leave();
   }
 }

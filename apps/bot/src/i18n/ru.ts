@@ -35,4 +35,6 @@ export default {
 <b>Члены Telegram:</b> {{telegramMembers}}
 <b>Подписчики Twitter:</b> {{twitterFollowers}}`,
   check_pack: 'Проверить pack',
+  delete_pack: 'Удалить pack',
+  copy_pack_url: 'Скопировать ссылку на pack',
 };

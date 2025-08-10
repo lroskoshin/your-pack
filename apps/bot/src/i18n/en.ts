@@ -39,4 +39,6 @@ export default {
 <b>Telegram members:</b> {{telegramMembers}}
 <b>Twitter followers:</b> {{twitterFollowers}}`,
   check_pack: 'Check pack',
+  delete_pack: 'Delete pack',
+  copy_pack_url: 'Copy pack url',
 };

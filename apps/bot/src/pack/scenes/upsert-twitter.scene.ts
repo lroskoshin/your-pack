@@ -1,5 +1,5 @@
 import { Ctx, Message, On, Scene, SceneEnter } from 'nestjs-telegraf';
-import { EDIT_PACK_SCENE, EDIT_PACK_TWITTER_SCENE } from '../constants';
+import { EDIT_PACK_TWITTER_SCENE } from '../constants';
 import { PackService } from '../pack.service';
 import { UserContext } from '../../interfaces/context.interface';
 
@@ -17,14 +17,22 @@ export class UpsertTwitterScene {
       await ctx.reply(ctx.t('twitter_add_error'));
       return;
     }
-    const twitterProvider = await this.packService.addTwitter(ctx, text);
+    const packId = ctx.scene.state?.packId;
+    const userId = ctx.user?.id;
+    if (!packId || !userId) {
+      await ctx.reply(ctx.t('twitter_add_error'));
+      return;
+    }
+    const twitterProvider = await this.packService.addTwitter(
+      userId,
+      packId,
+      text,
+    );
     if (!twitterProvider) {
       await ctx.reply(ctx.t('twitter_add_error'));
       return;
     }
     await ctx.reply(ctx.t('twitter_add_success'));
-    await ctx.scene.enter(EDIT_PACK_SCENE, {
-      packId: ctx.scene.state?.packId,
-    });
+    await ctx.scene.leave();
   }
 }

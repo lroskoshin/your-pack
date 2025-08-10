@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { BotService } from './bot.service';
 import { TelegrafModule } from 'nestjs-telegraf';
 import { PrismaModule } from '@app/prisma';
 import { EnvModule } from '@app/config';
@@ -24,8 +23,7 @@ import { createKeyv } from '@keyv/redis';
       isGlobal: true,
       useFactory: (configService: ConfigService<Env>) => ({
         stores: [createKeyv(configService.get('REDIS_URL', { infer: true }))],
-        ttl: 60_000, // 60 seconds in milliseconds for cache-manager v7 / Keyv
-        max: 100,
+        ttl: 60_000 * 5, // 5 minutes in milliseconds for cache-manager v7 / Keyv
       }),
       inject: [ConfigService<Env>],
     }),
@@ -47,6 +45,5 @@ import { createKeyv } from '@keyv/redis';
     PackModule,
     AdminModule,
   ],
-  providers: [BotService],
 })
 export class BotModule {}

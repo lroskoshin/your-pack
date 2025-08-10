@@ -26,7 +26,7 @@ export class AdminUpdate {
   @Command('admin_check_tg_channel')
   async checkTgChannel(@Ctx() ctx: UserContext, @Message('text') text: string) {
     const channel = text.split(' ')[1].trim();
-    if (typeof channel !== 'string' || !channel.startsWith('@')) {
+    if (typeof channel !== 'string') {
       await ctx.reply('Please enter a valid channel name');
       return;
     }

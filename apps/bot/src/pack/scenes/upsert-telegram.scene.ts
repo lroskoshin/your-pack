@@ -13,7 +13,7 @@ export class UpsertTelegramScene {
 
   @On('text')
   async onText(@Ctx() ctx: UserContext, @Message('text') text: string) {
-    if (!text.startsWith('@')) {
+    if (typeof text !== 'string' || text.includes('@') || text.includes(' ')) {
       await ctx.reply(ctx.t('telegram_add_error'));
       return;
     }

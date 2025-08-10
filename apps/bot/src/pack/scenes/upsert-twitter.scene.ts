@@ -13,7 +13,7 @@ export class UpsertTwitterScene {
 
   @On('text')
   async onText(@Ctx() ctx: UserContext, @Message('text') text: string) {
-    if (!text.startsWith('@')) {
+    if (typeof text !== 'string' || text.includes('@') || text.includes(' ')) {
       await ctx.reply(ctx.t('twitter_add_error'));
       return;
     }

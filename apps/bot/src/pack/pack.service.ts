@@ -112,7 +112,7 @@ export class PackService {
     }
     if (pack.twitterProvider) {
       result.twitterFollowers = await this.twitterService.getMembersAsGuest(
-        pack.twitterProvider.profileId.slice(1),
+        pack.twitterProvider.profileId,
       );
     }
     return result;
@@ -120,9 +120,16 @@ export class PackService {
 
   public async deletePack(userId: string, packId: string) {
     const pack = await this.getPackSecurely(userId, packId);
-    return this.prisma.pack.delete({
-      where: { id: pack.id, userId },
-    });
+    const [, , deletedPack] = await this.prisma.$transaction([
+      this.prisma.telegramProvider.deleteMany({
+        where: { packId: pack.id, userId },
+      }),
+      this.prisma.twitterProvider.deleteMany({
+        where: { packId: pack.id, userId },
+      }),
+      this.prisma.pack.delete({ where: { id: pack.id } }),
+    ]);
+    return deletedPack;
   }
 
   public async getPackPublicUrl(userId: string, packId: string) {

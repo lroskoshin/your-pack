@@ -15,10 +15,19 @@ export class StartUpdate implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    await this.bot.telegram.setMyCommands([
-      { command: 'start', description: 'Start the bot' },
-      { command: 'new_pack', description: 'Create a new pack' },
-    ]);
+    await this.bot.telegram.setMyCommands(
+      [{ command: 'start', description: 'Start the bot' }],
+      {
+        language_code: 'en',
+      },
+    );
+    await this.bot.telegram.setMyCommands(
+      [
+        { command: 'new', description: 'Создать новый pack' },
+        { command: 'packs', description: 'Список ваших pack' },
+      ],
+      { language_code: 'ru' },
+    );
   }
 
   @Start()
@@ -35,16 +44,24 @@ export class StartUpdate implements OnModuleInit {
           telegramId: telegramId,
         },
       });
+      await ctx.reply(fmt`👋 Hi! Choose your language`, {
+        parse_mode: 'HTML',
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: 'English', callback_data: 'EN' }],
+            [{ text: 'Russian', callback_data: 'RU' }],
+          ],
+        },
+      });
+    } else {
+      await ctx.reply(ctx.t('welcome'), {
+        parse_mode: 'HTML',
+        reply_markup: {
+          one_time_keyboard: true,
+          keyboard: [['/new', '/packs']],
+        },
+      });
     }
-    await ctx.reply(fmt`👋 Hi! Choose your language`, {
-      parse_mode: 'HTML',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: 'English', callback_data: 'EN' }],
-          [{ text: 'Russian', callback_data: 'RU' }],
-        ],
-      },
-    });
   }
 
   @Action(/^EN|RU$/)
@@ -69,6 +86,9 @@ export class StartUpdate implements OnModuleInit {
         });
       }
       await ctx.reply(ctx.t('language_changed', { lang: ctx.language }));
+      await ctx.reply(ctx.t('welcome'), {
+        parse_mode: 'HTML',
+      });
       return;
     }
   }

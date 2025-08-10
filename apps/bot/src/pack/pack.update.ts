@@ -1,18 +1,15 @@
-import {
-  Action,
-  Command,
-  Ctx,
-  InjectBot,
-  Message,
-  Update,
-} from 'nestjs-telegraf';
+import { Action, Command, Ctx, InjectBot, Update } from 'nestjs-telegraf';
 import { UserContext } from '../interfaces/context.interface';
 import { Telegraf } from 'telegraf';
 import { OnModuleInit } from '@nestjs/common';
 import { PrismaService } from '@app/prisma';
 import { ensureCbData } from '../utils/callbacks';
 import { PackService } from './pack.service';
-import { EDIT_PACK_TWITTER_SCENE, EDIT_PACK_TELEGRAM_SCENE } from './constants';
+import {
+  EDIT_PACK_TWITTER_SCENE,
+  EDIT_PACK_TELEGRAM_SCENE,
+  CREATE_PACK_SCENE,
+} from './constants';
 import { fmt } from 'telegraf/format';
 
 @Update()
@@ -24,36 +21,34 @@ export class PackUpdate implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    await this.bot.telegram.setMyCommands([
-      ...(await this.bot.telegram.getMyCommands()),
-      { command: 'new_pack', description: 'Create a new pack' },
-      { command: 'packs', description: 'List your packs' },
-      { command: 'check_pack', description: 'Check a pack' },
-    ]);
+    const commands = await this.bot.telegram.getMyCommands();
+    if (commands) {
+      await this.bot.telegram.setMyCommands(
+        [
+          ...(await this.bot.telegram.getMyCommands()),
+          { command: 'new', description: 'Create a new pack' },
+          { command: 'packs', description: 'List your packs' },
+        ],
+        {
+          language_code: 'en',
+        },
+      );
+      await this.bot.telegram.setMyCommands(
+        [
+          ...(await this.bot.telegram.getMyCommands()),
+          { command: 'new', description: 'Создать новый pack' },
+          { command: 'packs', description: 'Список ваших pack' },
+        ],
+        {
+          language_code: 'ru',
+        },
+      );
+    }
   }
 
-  @Command('new_pack')
-  async newPack(
-    @Ctx() ctx: UserContext,
-    @Message('text') text: string,
-  ): Promise<void> {
-    try {
-      const name = text.split(' ')[1];
-      const userId = ctx.user?.id;
-      if (!userId) {
-        await ctx.reply(ctx.t('something_wrong'));
-        return;
-      }
-      await this.packService.newPack(userId, name);
-      await ctx.reply(ctx.t('pack_created', { packName: name }));
-    } catch (error: unknown) {
-      await ctx.reply(
-        ctx.t('error_creating_pack', {
-          error: error instanceof Error ? error.message : 'Unknown error',
-        }),
-      );
-      return;
-    }
+  @Command('new')
+  async newPack(@Ctx() ctx: UserContext): Promise<void> {
+    await ctx.scene.enter(CREATE_PACK_SCENE);
   }
 
   @Command('packs')
@@ -62,7 +57,9 @@ export class PackUpdate implements OnModuleInit {
       where: { userId: ctx.user?.id },
     });
     if (packs.length === 0) {
-      await ctx.reply(ctx.t('no_packs'));
+      await ctx.reply(ctx.t('no_packs'), {
+        parse_mode: 'HTML',
+      });
       return;
     }
     await ctx.reply(ctx.t('packs_list'), {
@@ -123,7 +120,10 @@ export class PackUpdate implements OnModuleInit {
       ]);
     } else {
       keyboard.push([
-        { text: ctx.t('add_twitter'), callback_data: 'provider:twitter:add' },
+        {
+          text: ctx.t('add_twitter'),
+          callback_data: `provider:twitter:add:${pack.id}`,
+        },
       ]);
     }
 
@@ -156,8 +156,8 @@ export class PackUpdate implements OnModuleInit {
   @Action(/^delete_pack:(.+)$/)
   async deletePack(@Ctx() ctx: UserContext) {
     const data = await this.ensureData(ctx);
-    await this.packService.deletePack(data.userId, data.packId);
-    await ctx.reply(ctx.t('pack_deleted'));
+    const pack = await this.packService.deletePack(data.userId, data.packId);
+    await ctx.reply(ctx.t('pack_deleted', { packName: pack.name }));
   }
 
   @Action(/^provider:telegram:(add|edit):(.+)$/)
@@ -189,8 +189,20 @@ export class PackUpdate implements OnModuleInit {
   @Action(/^check_pack:(.+)$/)
   async checkPack(@Ctx() ctx: UserContext) {
     const data = await this.ensureData(ctx);
-    await this.packService.checkPackSecurely(data.userId, data.packId);
-    await ctx.reply(ctx.t('pack_checked'));
+    const result = await this.packService.checkPackSecurely(
+      data.userId,
+      data.packId,
+    );
+    await ctx.reply(
+      ctx.t('check_pack_result', {
+        telegramMembers: result.telegramMembers,
+        twitterFollowers: result.twitterFollowers,
+        packName: result.packName,
+      }),
+      {
+        parse_mode: 'HTML',
+      },
+    );
   }
 
   private async ensureData(ctx: UserContext) {
